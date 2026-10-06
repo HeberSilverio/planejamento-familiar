@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedComprasRouteImport } from './routes/_authenticated/compras'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedDividasRouteImport } from './routes/_authenticated/dividas'
 import { Route as AuthenticatedFamiliaRouteImport } from './routes/_authenticated/familia'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
@@ -49,6 +50,11 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDividasRoute = AuthenticatedDividasRouteImport.update({
   id: '/dividas',
   path: '/dividas',
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/compras': typeof AuthenticatedComprasRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
   '/dividas': typeof AuthenticatedDividasRoute
   '/familia': typeof AuthenticatedFamiliaRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
@@ -118,6 +125,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/compras': typeof AuthenticatedComprasRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
   '/dividas': typeof AuthenticatedDividasRoute
   '/familia': typeof AuthenticatedFamiliaRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
@@ -135,6 +143,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/compras': typeof AuthenticatedComprasRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/dividas': typeof AuthenticatedDividasRoute
   '/_authenticated/familia': typeof AuthenticatedFamiliaRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compras'
     | '/configuracoes'
+    | '/dashboard'
     | '/dividas'
     | '/familia'
     | '/financeiro'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/compras'
     | '/configuracoes'
+    | '/dashboard'
     | '/dividas'
     | '/familia'
     | '/financeiro'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/compras'
     | '/_authenticated/configuracoes'
+    | '/_authenticated/dashboard'
     | '/_authenticated/dividas'
     | '/_authenticated/familia'
     | '/_authenticated/financeiro'
@@ -235,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dividas': {
@@ -306,6 +325,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedComprasRoute: typeof AuthenticatedComprasRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedDividasRoute: typeof AuthenticatedDividasRoute
   AuthenticatedFamiliaRoute: typeof AuthenticatedFamiliaRoute
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
@@ -320,6 +340,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedComprasRoute: AuthenticatedComprasRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedDividasRoute: AuthenticatedDividasRoute,
   AuthenticatedFamiliaRoute: AuthenticatedFamiliaRoute,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
