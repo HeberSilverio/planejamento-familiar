@@ -117,7 +117,7 @@ export function RecordDialog({
         <DialogHeader>
           <DialogTitle className="font-display font-extrabold">{title ?? (initial ? "Editar" : "Adicionar")}</DialogTitle>
         </DialogHeader>
-        {open && <RecordForm key={String(initial?.id ?? "new")} fields={fields} initial={initial} onSubmit={onSubmit} />}
+        {open && <RecordForm key={String(initial?.["id"] ?? "new")} fields={fields} initial={initial} onSubmit={onSubmit} />}
       </DialogContent>
     </Dialog>
   );

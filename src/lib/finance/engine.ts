@@ -22,7 +22,7 @@ const MONTHS_PT_FULL = [
 /** Índice absoluto de mês (ano*12 + mês0). */
 export function monthIndexOf(date: string | Date): number {
   if (typeof date === "string") {
-    const [y, m] = date.split("-").map(Number);
+    const [y = 0, m = 1] = date.split("-").map(Number);
     return y * 12 + (m - 1);
   }
   return date.getFullYear() * 12 + date.getMonth();
@@ -264,7 +264,7 @@ export function summarize(results: MonthResult[], months: number, label: string)
 export function calculateSimulationImpact(data: FinanceData, sim: SimItem[]) {
   const base = projectMonths(data, 60);
   const scen = projectMonths(data, 60, sim);
-  const monthly = round2(scen[0].balance - base[0].balance);
+  const monthly = round2(scen[0]!.balance - base[0]!.balance);
   return {
     monthly,
     base,
@@ -323,12 +323,12 @@ export function findPurchaseFit(data: FinanceData, amount: number, installments:
   for (let s = 0; s < 24; s++) {
     let ok = true;
     for (let k = 0; k < installments; k++) {
-      if (proj[s + k].balanceAfterTarget - per < 0) {
+      if (proj[s + k]!.balanceAfterTarget - per < 0) {
         ok = false;
         break;
       }
     }
-    if (ok) return { offset: s, mi: proj[s].mi, label: proj[s].fullLabel, perMonth: round2(per) };
+    if (ok) return { offset: s, mi: proj[s]!.mi, label: proj[s]!.fullLabel, perMonth: round2(per) };
   }
   return null;
 }
