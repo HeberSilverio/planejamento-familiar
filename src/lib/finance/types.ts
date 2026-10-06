@@ -46,11 +46,11 @@ export interface MonthItem {
   amount: number;
   group: "income" | "expense" | "investment";
   source: "income" | "recurring" | "commitment" | "debt" | "transaction" | "investment" | "simulation";
-  note?: string;
-  isLast?: boolean;
-  refId?: string;
-  cardId?: string | null;
-  day?: number;
+  note?: string | undefined;
+  isLast?: boolean | undefined;
+  refId?: string | undefined;
+  cardId?: string | null | undefined;
+  day?: number | undefined;
 }
 
 export interface MonthResult {
