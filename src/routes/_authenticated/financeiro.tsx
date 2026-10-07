@@ -19,11 +19,14 @@ export const Route = createFileRoute("/_authenticated/financeiro")({
   component: Page,
 });
 
-type Row = { id: string } & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type Row = { id: string; name: any; kind: any; amount: any; installment_amount: any; balance: any; category_id: any; day_of_month: any;
+  installments_total: any; first_due_date: any; credit_card_id: any; description: any; date: any; member_id: any;
+  closing_day: any; due_day: any; credit_limit: any; [k: string]: unknown };
 const today = () => new Date().toISOString().slice(0, 10);
 const kindOpts = [{ value: "expense", label: "Despesa" }, { value: "income", label: "Receita" }];
 
-function Line({ title, sub, value, tone }: { title: string; sub?: string; value?: string; tone?: "income" }) {
+function Line({ title, sub, value, tone }: { title: string; sub?: string | undefined; value?: string | undefined; tone?: "income" | undefined }) {
   return (
     <div className="flex justify-between gap-3">
       <div className="min-w-0">
