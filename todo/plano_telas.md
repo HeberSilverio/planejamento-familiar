@@ -8,8 +8,8 @@ Legenda: [x] concluído · [ ] pendente
 - [x] **Financeiro** — contas bancárias, cartões de crédito, categorias, despesas fixas mensais, compromissos/parcelamentos e lançamentos avulsos. Resumo de despesas fixas e parcelas do mês.
 
 ## Fase 2 — Planejamento e metas
-- [ ] **Planejamento** — orçado x realizado, projeção de 12 meses, distribuição por categoria.
-- [ ] **Dívidas** — cadastro de dívidas, parcelas pagas/restantes, juros, estratégias bola de neve e avalanche.
+- [x] **Planejamento** — orçado x realizado, projeção de 12 meses, distribuição por categoria.
+- [x] **Dívidas** — cadastro de dívidas, parcelas pagas/restantes, juros, estratégias bola de neve e avalanche.
 - [ ] **Compras planejadas** — lista de desejos com prioridade, valor, parcelas, data-alvo e verificação de viabilidade.
 - [ ] **Objetivos** — metas com valor-alvo, aporte mensal, prazo, progresso e alerta de atraso.
 
@@ -17,7 +17,7 @@ Legenda: [x] concluído · [ ] pendente
 - [ ] **Investimentos** — ativos, aportes mensais, saldo atual, comparação com a meta de % investida.
 - [ ] **Simulador "E se...?"** — cenários que não alteram os dados reais; comparação de 12 meses.
 - [ ] **Gamificação** — XP por membro, missões, conquistas.
-- [ ] **Relatórios** — evolução por categoria e membro, resumo mensal, exportação CSV.
+- [x] **Relatórios** — evolução por categoria e membro, resumo mensal, exportação CSV.
 - [ ] **Configurações** — nome da família, meta de investimento (%), limite de atenção, carga de dados de referência.
 
 ## Padrões
