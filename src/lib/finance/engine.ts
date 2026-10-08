@@ -338,3 +338,42 @@ export function levelFromXp(xp: number) {
   const level = Math.floor(xp / 100) + 1;
   return { level, progress: xp % 100, next: level * 100 };
 }
+
+/**
+ * Simula a quitação mês a mês. Parcelas normais seguem; o valor extra (mais as parcelas
+ * liberadas de dívidas quitadas) amortiza a dívida-alvo: menor saldo (snowball) ou maior juros (avalanche).
+ */
+export function simulateDebtPayoff(debts: Debt[], extra: number, strategy: "snowball" | "avalanche") {
+  const list = debts
+    .map((d) => {
+      const rem = Math.max(0, d.installments_total - d.installments_paid);
+      return { name: d.name, bal: rem * n(d.installment_amount), pay: n(d.installment_amount), rate: n(d.interest_rate) / 100, done: 0 };
+    })
+    .filter((d) => d.bal > 0);
+  let month = 0;
+  let interest = 0;
+  const order: { name: string; month: number }[] = [];
+  while (list.some((d) => d.bal > 0.005) && month < 600) {
+    month++;
+    let pool = extra;
+    for (const d of list) {
+      if (d.bal <= 0.005) { pool += d.pay; continue; }
+      const j = d.bal * d.rate;
+      interest += j;
+      d.bal += j;
+      const p = Math.min(d.pay, d.bal);
+      d.bal -= p;
+      pool += d.pay - p;
+    }
+    const open = list.filter((d) => d.bal > 0.005)
+      .sort((a, b) => (strategy === "snowball" ? a.bal - b.bal : b.rate - a.rate || a.bal - b.bal));
+    for (const d of open) {
+      if (pool <= 0) break;
+      const p = Math.min(pool, d.bal);
+      d.bal -= p;
+      pool -= p;
+    }
+    for (const d of list) if (d.bal <= 0.005 && !d.done) { d.done = month; order.push({ name: d.name, month }); }
+  }
+  return { months: month, interest: round2(interest), order };
+}

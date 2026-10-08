@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { Bar, BarChart, CartesianGrid, Legend, Line, ComposedChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, CartesianGrid, Legend, Line, ComposedChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageHeader, Panel, Stat, StatusBadge, ProgressBar, Empty, statusText } from "@/components/app/ui";
 import { useFinance } from "@/lib/data/useFinance";
 import { useOptions } from "@/lib/data/options";
@@ -156,5 +156,3 @@ function Page() {
   );
 }
 
-// keep BarChart import tree-shaken safely
-void BarChart;
