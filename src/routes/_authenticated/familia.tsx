@@ -4,6 +4,8 @@ import { CrudSection } from "@/components/app/CrudSection";
 import { useTable } from "@/lib/data/tables";
 import { useOptions } from "@/lib/data/options";
 import { money, dateBR } from "@/lib/format";
+import { currentMonthIndex, incomeAmountInMonth, eligibleIncome, monthLabel } from "@/lib/finance/engine";
+import type { Income as IncomeRow } from "@/lib/finance/types";
 
 export const Route = createFileRoute("/_authenticated/familia")({
   head: () => ({
@@ -20,13 +22,17 @@ export const Route = createFileRoute("/_authenticated/familia")({
 });
 
 type Member = { id: string; name: string; birth_year: number | null; role: string | null; in_budget: boolean };
-type Income = { id: string; name: string; amount: number; member_id: string | null; in_budget: boolean; start_date: string; end_date: string | null };
+type Income = IncomeRow;
+const FREQ: Record<string, string> = { monthly: "mensal", weekly: "semanal", biweekly: "quinzenal", annual: "anual" };
 
 function Page() {
   const { members, memberOpts, name } = useOptions();
   const incomes = useTable<Income>("income_sources").data ?? [];
-  const active = incomes.filter((i) => i.in_budget);
-  const total = active.reduce((s, i) => s + Number(i.amount), 0);
+  // Mesma regra do Dashboard/Planejamento: vigência, frequência, ativo e orçamento.
+  const mi = currentMonthIndex();
+  const total = eligibleIncome(incomes, mi);
+  const next = eligibleIncome(incomes, mi + 1);
+  const byMember = (id: string) => eligibleIncome(incomes.filter((i) => i.member_id === id), mi);
 
   return (
     <>
@@ -34,9 +40,10 @@ function Page() {
       <Panel className="mb-6">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Stat label="Membros" value={members.length} />
-          <Stat label="Renda mensal no orçamento" value={money(total)} tone="primary" />
-          {members.slice(0, 2).map((m) => (
-            <Stat key={m.id} label={`Renda de ${m.name}`} value={money(active.filter((i) => i.member_id === m.id).reduce((s, i) => s + Number(i.amount), 0))} />
+          <Stat label={`Renda no orçamento · ${monthLabel(mi, true)}`} value={money(total)} tone="primary" />
+          <Stat label={`Renda no orçamento · ${monthLabel(mi + 1, true)}`} value={money(next)} />
+          {members.slice(0, 1).map((m) => (
+            <Stat key={m.id} label={`Renda de ${m.name} (mês atual)`} value={money(byMember(m.id))} />
           ))}
         </div>
       </Panel>
@@ -68,11 +75,14 @@ function Page() {
           addLabel="Nova renda"
           fields={[
             { name: "name", label: "Descrição (ex.: salário)", type: "text", required: true },
-            { name: "amount", label: "Valor mensal (R$)", type: "number", required: true, min: 0 },
+            { name: "amount", label: "Valor por recebimento (R$)", type: "number", required: true, min: 0 },
+            { name: "frequency", label: "Frequência", type: "select", required: true, default: "monthly", options: Object.entries(FREQ).map(([value, label]) => ({ value, label })) },
+            { name: "pay_day", label: "Dia previsto de recebimento", type: "int", min: 1 },
             { name: "member_id", label: "Membro", type: "select", options: memberOpts },
             { name: "start_date", label: "Início", type: "date", required: true, default: new Date().toISOString().slice(0, 10) },
             { name: "end_date", label: "Término (opcional)", type: "date" },
             { name: "in_budget", label: "Entra no orçamento", type: "bool", default: true },
+            { name: "active", label: "Ativa", type: "bool", default: true },
           ]}
           render={(i) => (
             <div className="flex justify-between gap-3">
@@ -80,7 +90,10 @@ function Page() {
                 <p className="font-semibold truncate">{i.name}</p>
                 <p className="text-xs text-muted-foreground">
                   {name(members, i.member_id) ?? "Sem membro"} · desde {dateBR(i.start_date)}
-                  {i.end_date && ` até ${dateBR(i.end_date)}`}
+                  {i.end_date && ` até ${dateBR(i.end_date)}`} · {FREQ[i.frequency] ?? i.frequency}
+                  {!i.in_budget && " · fora do orçamento"}
+                  {!i.active && " · inativa"}
+                  {i.in_budget && i.active && incomeAmountInMonth(i, mi) === 0 && " · não recebe neste mês"}
                 </p>
               </div>
               <p className="font-display font-extrabold text-primary">{money(i.amount)}</p>

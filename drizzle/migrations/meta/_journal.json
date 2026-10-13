@@ -8,6 +8,13 @@
       "when": 1791158089200,
       "tag": "0000_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791935425164,
+      "tag": "0001_payment_status_and_income_frequency",
+      "breakpoints": true
     }
   ]
 }

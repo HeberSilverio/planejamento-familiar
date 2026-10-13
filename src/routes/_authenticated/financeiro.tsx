@@ -54,7 +54,7 @@ function Page() {
       <PageHeader eyebrow="Lar.Contas" title="Financeiro" />
       <Panel className="mb-6">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Stat label="Saldo em contas" value={money(balance)} tone="primary" />
+          <Stat label="Saldo em contas (opcional)" value={money(balance)} tone="primary" />
           <Stat label="Despesas fixas/mês" value={money(fixed)} />
           <Stat label="Parcelas/mês" value={money(parcels)} tone="warn" />
           <Stat label="Cartões" value={cards.length} />
@@ -98,6 +98,7 @@ function Page() {
             { name: "category_id", label: "Categoria", type: "select", options: expenseCatOpts },
             { name: "credit_card_id", label: "Cartão", type: "select", options: cardOpts },
             { name: "member_id", label: "Responsável", type: "select", options: memberOpts },
+            { name: "counts_toward_goal", label: "Conta na meta de investimento (ex.: consórcio)", type: "bool", default: false },
             { name: "notes", label: "Observações", type: "text" },
           ]}
           render={(c) => (
@@ -117,7 +118,9 @@ function Page() {
             { name: "description", label: "Descrição", type: "text", required: true },
             { name: "amount", label: "Valor (R$)", type: "number", required: true, min: 0 },
             { name: "kind", label: "Tipo", type: "select", options: kindOpts, default: "expense", required: true },
-            { name: "date", label: "Data", type: "date", required: true, default: today() },
+            { name: "date", label: "Data / vencimento", type: "date", required: true, default: today() },
+            { name: "paid", label: "Paga", type: "bool", default: false, hint: "Marque se já foi paga. Contas futuras ficam pendentes." },
+            { name: "payment_method", label: "Forma de pagamento", type: "select", options: ["Pix", "Débito", "Crédito", "Dinheiro", "Boleto"].map((v) => ({ value: v, label: v })) },
             { name: "category_id", label: "Categoria", type: "select", options: catOpts },
             { name: "member_id", label: "Membro", type: "select", options: memberOpts },
             { name: "account_id", label: "Conta", type: "select", options: accountOpts },
@@ -126,7 +129,7 @@ function Page() {
           render={(t) => (
             <Line
               title={t.description}
-              sub={`${dateBR(t.date)} · ${name(categories, t.category_id) ?? "Sem categoria"}${t.member_id ? ` · ${name(members, t.member_id)}` : ""}`}
+              sub={`${dateBR(t.date)} · ${name(categories, t.category_id) ?? "Sem categoria"}${t.member_id ? ` · ${name(members, t.member_id)}` : ""}${t.kind === "expense" ? (t.paid ? " · ✓ paga" : " · pendente") : ""}`}
               value={money(t.amount)}
               tone={t.kind === "income" ? "income" : undefined}
             />
@@ -149,7 +152,7 @@ function Page() {
           addLabel="Nova conta"
           fields={[
             { name: "name", label: "Nome (ex.: Nubank)", type: "text", required: true },
-            { name: "balance", label: "Saldo atual (R$)", type: "number", required: true, default: 0 },
+            { name: "balance", label: "Saldo atual (opcional, não entra na previsão)", type: "number", default: 0 },
           ]}
           render={(a) => <Line title={a.name} value={money(a.balance)} tone="income" />}
         />

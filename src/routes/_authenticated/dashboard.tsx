@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { useFinance } from "@/lib/data/useFinance";
-import { projectMonths, calculateSafeSpendingLimit } from "@/lib/finance/engine";
+import { projectMonths, calculateSafeSpendingLimit, listDueItems } from "@/lib/finance/engine";
+import { DueLists } from "@/components/app/PaymentLists";
 import { money, compactMoney } from "@/lib/format";
 import { Panel, ProgressBar, Stat, StatusBadge, statusText, Empty } from "@/components/app/ui";
 import { useTable } from "@/lib/data/tables";
@@ -27,6 +28,7 @@ function Dashboard() {
   const settings = useTable<Settings>("user_settings").data?.[0];
   const months = useMemo(() => projectMonths(data, 6), [data]);
   const cur = months[0];
+  const due = useMemo(() => listDueItems(data), [data]);
 
   if (isLoading || !cur) return <Empty>Carregando…</Empty>;
 
@@ -34,7 +36,7 @@ function Dashboard() {
   const goalPct = cur.target > 0 ? (cur.countedInvestment / cur.target) * 100 : 0;
   const maxAbs = Math.max(1, ...months.map((m) => Math.abs(m.balance)));
   const upcoming = cur.items
-    .filter((i) => i.source === "commitment" || i.source === "debt" || i.source === "recurring")
+    .filter((i) => i.payType && !i.paid && i.source !== "transaction")
     .sort((a, b) => (a.day ?? 99) - (b.day ?? 99))
     .slice(0, 6);
 
@@ -56,8 +58,12 @@ function Dashboard() {
           {[
             ["Receita prevista", cur.income],
             ["Despesas previstas", cur.expense],
-            ["Investimentos", cur.investment],
-            ["Após meta", cur.balanceAfterTarget],
+            ["Despesas pagas", cur.paidExpense],
+            ["Despesas em aberto", cur.openExpense],
+            ["Investimentos previstos", cur.investment],
+            ["Meta de investimento", cur.target],
+            ["Saldo previsto", cur.balance],
+            ["Saldo após meta", cur.balanceAfterTarget],
           ].map(([l, v]) => (
             <div key={l as string}>
               <p className="eyebrow text-on-dark/50">{l}</p>
@@ -66,6 +72,10 @@ function Dashboard() {
           ))}
         </div>
       </header>
+
+      <Panel title="Pendências e próximos vencimentos">
+        <DueLists overdue={due.overdue} soon={due.soon} />
+      </Panel>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <Panel
