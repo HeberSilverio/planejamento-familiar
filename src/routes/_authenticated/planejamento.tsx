@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { MonthDetail } from "@/components/app/PaymentLists";
 import { Bar, CartesianGrid, Legend, Line, ComposedChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageHeader, Panel, Stat, StatusBadge, ProgressBar, Empty, statusText } from "@/components/app/ui";
 import { useFinance } from "@/lib/data/useFinance";
@@ -27,6 +28,8 @@ function Page() {
   const months = useMemo(() => projectMonths(data, 12), [data]);
   const now = currentMonthIndex();
   const cur = months[0];
+  const [sel, setSel] = useState(0);
+  const selected = months[sel] ?? cur;
 
   const budget = useMemo(() => {
     const map = new Map<string, { name: string; planned: number; actual: number }>();
@@ -94,14 +97,17 @@ function Page() {
         <div className="overflow-x-auto mt-4">
           <table className="w-full text-sm">
             <thead className="text-muted-foreground text-left">
-              <tr><th className="py-2">Mês</th><th className="text-right">Receitas</th><th className="text-right">Despesas</th><th className="text-right">Invest.</th><th className="text-right">Saldo</th><th className="text-right">Após meta</th></tr>
+              <tr><th className="py-2">Mês</th><th className="text-right">Receitas</th><th className="text-right">Despesas</th><th className="text-right">Pagas</th><th className="text-right">Em aberto</th><th className="text-right">Pendentes</th><th className="text-right">Invest.</th><th className="text-right">Saldo</th><th className="text-right">Após meta</th></tr>
             </thead>
             <tbody>
-              {months.map((m) => (
-                <tr key={m.key} className="border-t border-border">
+              {months.map((m, idx) => (
+                <tr key={m.key} onClick={() => setSel(idx)} className={`border-t border-border cursor-pointer hover:bg-muted/40 ${idx === sel ? "bg-muted/60" : ""}`}>
                   <td className="py-2 font-semibold">{m.fullLabel}</td>
                   <td className="text-right">{money(m.income)}</td>
                   <td className="text-right">{money(m.expense)}</td>
+                  <td className="text-right text-primary">{money(m.paidExpense)}</td>
+                  <td className="text-right">{money(m.openExpense)}</td>
+                  <td className="text-right">{m.pendingCount}</td>
                   <td className="text-right">{money(m.investment)}</td>
                   <td className={`text-right font-bold ${statusText(m.status)}`}>{money(m.balance)}</td>
                   <td className={`text-right ${m.balanceAfterTarget < 0 ? "text-destructive" : ""}`}>{money(m.balanceAfterTarget)}</td>
@@ -111,6 +117,13 @@ function Page() {
           </table>
         </div>
       </Panel>
+
+      {selected && (
+        <Panel title={`Composição de ${selected.fullLabel}`} className="mb-6"
+          action={<span className="text-xs text-muted-foreground">Clique num mês da tabela para ver o detalhe</span>}>
+          <MonthDetail month={selected} />
+        </Panel>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Panel title={`Orçado vs. realizado — ${cur.fullLabel}`}>
