@@ -159,6 +159,7 @@ export type Database = {
       commitments: {
         Row: {
           category_id: string | null
+          counts_toward_goal: boolean
           created_at: string
           credit_card_id: string | null
           due_day: number | null
@@ -175,6 +176,7 @@ export type Database = {
         }
         Insert: {
           category_id?: string | null
+          counts_toward_goal?: boolean
           created_at?: string
           credit_card_id?: string | null
           due_day?: number | null
@@ -191,6 +193,7 @@ export type Database = {
         }
         Update: {
           category_id?: string | null
+          counts_toward_goal?: boolean
           created_at?: string
           credit_card_id?: string | null
           due_day?: number | null
@@ -457,37 +460,46 @@ export type Database = {
       }
       income_sources: {
         Row: {
+          active: boolean
           amount: number
           created_at: string
           end_date: string | null
+          frequency: string
           id: string
           in_budget: boolean
           member_id: string | null
           name: string
+          pay_day: number | null
           start_date: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          active?: boolean
           amount: number
           created_at?: string
           end_date?: string | null
+          frequency?: string
           id?: string
           in_budget?: boolean
           member_id?: string | null
           name: string
+          pay_day?: number | null
           start_date?: string
           updated_at?: string
           user_id?: string
         }
         Update: {
+          active?: boolean
           amount?: number
           created_at?: string
           end_date?: string | null
+          frequency?: string
           id?: string
           in_budget?: boolean
           member_id?: string | null
           name?: string
+          pay_day?: number | null
           start_date?: string
           updated_at?: string
           user_id?: string
@@ -657,6 +669,39 @@ export type Database = {
           updated_at?: string
           user_id?: string
           xp_reward?: number
+        }
+        Relationships: []
+      }
+      obligation_payments: {
+        Row: {
+          created_at: string
+          id: string
+          month_key: string
+          paid_at: string
+          source_id: string
+          source_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month_key: string
+          paid_at?: string
+          source_id: string
+          source_type: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month_key?: string
+          paid_at?: string
+          source_id?: string
+          source_type?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -835,6 +880,9 @@ export type Database = {
           id: string
           kind: Database["public"]["Enums"]["tx_kind"]
           member_id: string | null
+          paid: boolean
+          paid_at: string | null
+          payment_method: string | null
           updated_at: string
           user_id: string
         }
@@ -849,6 +897,9 @@ export type Database = {
           id?: string
           kind?: Database["public"]["Enums"]["tx_kind"]
           member_id?: string | null
+          paid?: boolean
+          paid_at?: string | null
+          payment_method?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -863,6 +914,9 @@ export type Database = {
           id?: string
           kind?: Database["public"]["Enums"]["tx_kind"]
           member_id?: string | null
+          paid?: boolean
+          paid_at?: string | null
+          payment_method?: string | null
           updated_at?: string
           user_id?: string
         }
