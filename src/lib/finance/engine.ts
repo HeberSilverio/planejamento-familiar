@@ -11,6 +11,7 @@ import type {
   HealthStatus,
   Goal,
   Debt,
+  Income,
 } from "./types";
 
 const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -82,6 +83,66 @@ function simItemsForMonth(items: SimItem[], mi: number, baseMi: number): MonthIt
     }));
 }
 
+/** Data de hoje (YYYY-MM-DD) no fuso America/Sao_Paulo. */
+export function todaySaoPaulo(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+}
+
+export function addDays(date: string, days: number): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+export function daysBetween(a: string, b: string): number {
+  return Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86400000);
+}
+
+/** Data de vencimento no mês, ajustando o dia ao último dia do mês. */
+export function dueDateIn(mi: number, day: number | null | undefined): string {
+  const y = Math.floor(mi / 12);
+  const m = mi % 12;
+  const last = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  return monthIndexToDate(mi, Math.min(Math.max(1, day ?? 1), last));
+}
+
+function isPaid(data: FinanceData, type: string, id: string, mi: number) {
+  const key = monthKey(mi);
+  return (data.payments ?? []).some((p) => p.source_type === type && p.source_id === id && p.month_key === key);
+}
+
+/**
+ * Quanto uma fonte de renda gera num mês, respeitando vigência, frequência e status.
+ * Rendas inativas ou fora do orçamento geram zero para a família.
+ */
+export function incomeAmountInMonth(inc: Income, mi: number): number {
+  if (inc.active === false) return 0;
+  const amount = n(inc.amount);
+  const freq = inc.frequency ?? "monthly";
+  if (freq === "monthly") return activeBetween(inc.start_date, inc.end_date, mi) ? amount : 0;
+  if (freq === "annual") {
+    if (!activeBetween(inc.start_date, inc.end_date, mi)) return 0;
+    return monthIndexOf(inc.start_date) % 12 === mi % 12 ? amount : 0;
+  }
+  const step = freq === "weekly" ? 7 : 14;
+  const monthStart = monthIndexToDate(mi, 1);
+  const monthEnd = dueDateIn(mi, 31);
+  let d = inc.start_date;
+  if (d < monthStart) d = addDays(d, Math.ceil(daysBetween(d, monthStart) / step) * step);
+  let count = 0;
+  while (d <= monthEnd) {
+    if (inc.end_date && d > inc.end_date) break;
+    count++;
+    d = addDays(d, step);
+  }
+  return round2(count * amount);
+}
+
+/** Receita familiar elegível do mês (fonte oficial: Família > Fontes de renda). */
+export function eligibleIncome(incomes: Income[], mi: number): number {
+  return round2(incomes.filter((i) => i.in_budget).reduce((s, i) => s + incomeAmountInMonth(i, mi), 0));
+}
+
 /** Compromissos futuros (parcelas e recorrentes) num mês. */
 export function calculateFutureCommitments(data: FinanceData, mi: number): MonthItem[] {
   const items: MonthItem[] = [];
@@ -89,37 +150,34 @@ export function calculateFutureCommitments(data: FinanceData, mi: number): Month
     const first = monthIndexOf(c.first_due_date);
     const num = mi - first + 1;
     if (num < 1) continue;
-    if (c.kind === "installment") {
-      const total = c.installments_total ?? 1;
-      if (num > total) continue;
-      items.push({
-        label: c.name,
-        amount: n(c.installment_amount),
-        group: "expense",
-        source: "commitment",
-        note: `${num}/${total}`,
-        isLast: num === total,
-        refId: c.id,
-        cardId: c.credit_card_id,
-        day: c.due_day ?? undefined,
-      });
-    } else {
-      items.push({
-        label: c.name,
-        amount: n(c.installment_amount),
-        group: "expense",
-        source: "commitment",
-        note: "recorrente",
-        refId: c.id,
-        cardId: c.credit_card_id,
-        day: c.due_day ?? undefined,
-      });
-    }
+    const isInstallment = c.kind === "installment" && c.installments_total != null;
+    const total = c.installments_total ?? 1;
+    if (isInstallment && num > total) continue;
+    const goal = !!c.counts_toward_goal;
+    items.push({
+      label: c.name,
+      amount: n(c.installment_amount),
+      group: goal ? "investment" : "expense",
+      source: "commitment",
+      note: isInstallment ? `${num}/${total}` : "recorrente",
+      isLast: isInstallment && num === total,
+      recurring: !isInstallment,
+      refId: c.id,
+      cardId: c.credit_card_id,
+      memberId: c.member_id,
+      categoryId: c.category_id,
+      day: c.due_day ?? undefined,
+      dueDate: dueDateIn(mi, c.due_day ?? Number(c.first_due_date.slice(8, 10))),
+      paid: isPaid(data, "commitment", c.id, mi),
+      payType: "commitment",
+      monthKey: monthKey(mi),
+      countsTowardGoal: goal,
+    });
   }
   for (const d of data.debts) {
     const first = monthIndexOf(d.first_due_date);
     const num = mi - first + 1;
-    if (num < 1 || num > d.installments_total || num <= d.installments_paid) continue;
+    if (num < 1 || num > d.installments_total) continue;
     items.push({
       label: d.name,
       amount: n(d.installment_amount),
@@ -128,12 +186,16 @@ export function calculateFutureCommitments(data: FinanceData, mi: number): Month
       note: `${num}/${d.installments_total}`,
       isLast: num === d.installments_total,
       refId: d.id,
+      dueDate: dueDateIn(mi, Number(d.first_due_date.slice(8, 10))),
+      paid: num <= d.installments_paid || isPaid(data, "debt", d.id, mi),
+      payType: "debt",
+      monthKey: monthKey(mi),
     });
   }
   return items;
 }
 
-/** Balanço completo de um mês. */
+/** Balanço completo de um mês. Não depende de saldo bancário. */
 export function calculateMonthlyBalance(
   data: FinanceData,
   mi: number,
@@ -144,18 +206,30 @@ export function calculateMonthlyBalance(
 
   for (const inc of data.incomes) {
     if (!inc.in_budget) continue; // rendas fora do orçamento não entram
-    if (!activeBetween(inc.start_date, inc.end_date, mi)) continue;
-    items.push({ label: inc.name, amount: n(inc.amount), group: "income", source: "income" });
+    const amt = incomeAmountInMonth(inc, mi);
+    if (amt <= 0) continue;
+    items.push({ label: inc.name, amount: amt, group: "income", source: "income", memberId: inc.member_id, day: inc.pay_day ?? undefined });
   }
 
   for (const r of data.recurring) {
     if (!activeBetween(r.start_date, r.end_date, mi)) continue;
+    const isIncome = r.kind === "income";
     items.push({
       label: r.name,
       amount: n(r.amount),
-      group: r.kind === "income" ? "income" : "expense",
+      group: isIncome ? "income" : "expense",
       source: "recurring",
+      note: "recorrente",
+      recurring: true,
+      refId: r.id,
+      categoryId: r.category_id,
       day: r.day_of_month ?? undefined,
+      ...(isIncome ? {} : {
+        dueDate: dueDateIn(mi, r.day_of_month ?? Number(r.start_date.slice(8, 10))),
+        paid: isPaid(data, "recurring", r.id, mi),
+        payType: "recurring" as const,
+        monthKey: monthKey(mi),
+      }),
     });
   }
 
@@ -163,15 +237,23 @@ export function calculateMonthlyBalance(
 
   for (const t of data.transactions) {
     if (monthIndexOf(t.date) !== mi) continue;
+    const isIncome = t.kind === "income";
     items.push({
       label: t.description,
       amount: n(t.amount),
-      group: t.kind === "income" ? "income" : "expense",
+      group: isIncome ? "income" : "expense",
       source: "transaction",
+      refId: t.id,
+      memberId: t.member_id,
+      categoryId: t.category_id,
+      cardId: t.credit_card_id,
+      day: Number(t.date.slice(8, 10)),
+      ...(isIncome ? {} : { dueDate: t.date, paid: !!t.paid, payType: "transaction" as const }),
     });
   }
 
   let counted = 0;
+  for (const it of items) if (it.countsTowardGoal) counted += it.amount;
   for (const inv of data.investments) {
     if (!activeBetween(inv.start_date, inv.end_date, mi)) continue;
     const amt = n(inv.monthly_contribution);
@@ -188,13 +270,18 @@ export function calculateMonthlyBalance(
 
   items.push(...simItemsForMonth(sim, mi, baseMi));
 
-  const income = round2(items.filter((i) => i.group === "income").reduce((s, i) => s + i.amount, 0));
-  const expense = round2(items.filter((i) => i.group === "expense").reduce((s, i) => s + i.amount, 0));
-  const investment = round2(items.filter((i) => i.group === "investment").reduce((s, i) => s + i.amount, 0));
+  const sum = (f: (i: MonthItem) => boolean) => round2(items.filter(f).reduce((s, i) => s + i.amount, 0));
+  const income = sum((i) => i.group === "income");
+  const expense = sum((i) => i.group === "expense");
+  const investment = sum((i) => i.group === "investment");
+  const paidExpense = sum((i) => i.group === "expense" && i.paid === true);
+  const openExpense = round2(expense - paidExpense);
+  const pendingCount = items.filter((i) => i.payType && !i.paid).length;
   const pct = n(data.settings?.investment_target_pct ?? 30);
   const target = calculateInvestmentTarget(income, pct);
   const remaining = calculateInvestmentRemaining(target, counted);
   const balance = round2(income - expense - investment);
+  // Os investimentos contabilizados já foram descontados; reserva só o que falta da meta.
   const balanceAfterTarget = round2(balance - remaining);
 
   return {
@@ -205,6 +292,9 @@ export function calculateMonthlyBalance(
     items,
     income,
     expense,
+    paidExpense,
+    openExpense,
+    pendingCount,
     investment,
     countedInvestment: round2(counted),
     target,
@@ -213,6 +303,29 @@ export function calculateMonthlyBalance(
     balance,
     balanceAfterTarget,
     status: calculateFinancialHealth(balance, balanceAfterTarget),
+  };
+}
+
+export interface DueItem extends MonthItem {
+  dueDate: string;
+  daysLate: number;
+}
+
+/** Pendências: vencidas (antes de hoje) e que vencem de hoje até hoje+3, sempre não pagas. */
+export function listDueItems(data: FinanceData, today = todaySaoPaulo()) {
+  const curMi = monthIndexOf(today);
+  const limit = addDays(today, 3);
+  const all: DueItem[] = [];
+  for (let mi = curMi - 24; mi <= curMi + 1; mi++) {
+    for (const it of calculateMonthlyBalance(data, mi, [], curMi).items) {
+      if (!it.payType || it.paid || !it.dueDate || it.dueDate > limit) continue;
+      all.push({ ...it, dueDate: it.dueDate, daysLate: Math.max(0, daysBetween(it.dueDate, today)) });
+    }
+  }
+  all.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  return {
+    overdue: all.filter((i) => i.dueDate < today),
+    soon: all.filter((i) => i.dueDate >= today),
   };
 }
 

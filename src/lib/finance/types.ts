@@ -18,6 +18,7 @@ export type Simulation = Row<"simulations">;
 export type SimulationItem = Row<"simulation_items">;
 export type Settings = Row<"user_settings">;
 export type Mission = Row<"missions">;
+export type ObligationPayment = Row<"obligation_payments">;
 export type MemberMission = Row<"member_missions">;
 export type GamificationProfile = Row<"gamification_profiles">;
 
@@ -37,6 +38,7 @@ export interface FinanceData {
   investments: Investment[];
   transactions: Transaction[];
   settings: Settings | null;
+  payments?: ObligationPayment[] | undefined;
 }
 
 export type HealthStatus = "positivo" | "atencao" | "negativo";
@@ -51,6 +53,15 @@ export interface MonthItem {
   refId?: string | undefined;
   cardId?: string | null | undefined;
   day?: number | undefined;
+  dueDate?: string | undefined;
+  paid?: boolean | undefined;
+  /** Como liquidar: transação avulsa ou ocorrência mensal de recorrente/compromisso/dívida. */
+  payType?: "transaction" | "recurring" | "commitment" | "debt" | undefined;
+  monthKey?: string | undefined;
+  recurring?: boolean | undefined;
+  countsTowardGoal?: boolean | undefined;
+  memberId?: string | null | undefined;
+  categoryId?: string | null | undefined;
 }
 
 export interface MonthResult {
@@ -61,6 +72,9 @@ export interface MonthResult {
   items: MonthItem[];
   income: number;
   expense: number;
+  paidExpense: number;
+  openExpense: number;
+  pendingCount: number;
   investment: number;
   countedInvestment: number;
   target: number;
