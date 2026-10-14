@@ -129,7 +129,7 @@ function Page() {
           render={(t) => (
             <Line
               title={t.description}
-              sub={`${dateBR(t.date)} · ${name(categories, t.category_id) ?? "Sem categoria"}${t.member_id ? ` · ${name(members, t.member_id)}` : ""}${t.kind === "expense" ? (t.paid ? " · ✓ paga" : " · pendente") : ""}`}
+              sub={`${dateBR(t.date)} · ${name(categories, t.category_id) ?? "Sem categoria"}${t.member_id ? ` · ${name(members, t.member_id)}` : ""}${t.kind === "expense" ? (t["paid"] ? " · ✓ paga" : " · pendente") : ""}`}
               value={money(t.amount)}
               tone={t.kind === "income" ? "income" : undefined}
             />
