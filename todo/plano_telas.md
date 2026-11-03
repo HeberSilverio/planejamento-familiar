@@ -10,12 +10,12 @@ Legenda: [x] concluído · [ ] pendente
 ## Fase 2 — Planejamento e metas
 - [x] **Planejamento** — orçado x realizado, projeção de 12 meses, distribuição por categoria.
 - [x] **Dívidas** — cadastro de dívidas, parcelas pagas/restantes, juros, estratégias bola de neve e avalanche.
-- [ ] **Compras planejadas** — lista de desejos com prioridade, valor, parcelas, data-alvo e verificação de viabilidade.
-- [ ] **Objetivos** — metas com valor-alvo, aporte mensal, prazo, progresso e alerta de atraso.
+- [x] **Compras planejadas** — lista de desejos com prioridade, valor, parcelas, data-alvo e verificação de viabilidade.
+- [x] **Objetivos** — metas com valor-alvo, aporte mensal, prazo, progresso e alerta de atraso.
 
 ## Fase 3 — Investimentos, cenários e engajamento
 - [ ] **Investimentos** — ativos, aportes mensais, saldo atual, comparação com a meta de % investida.
-- [ ] **Simulador "E se...?"** — cenários que não alteram os dados reais; comparação de 12 meses.
+- [x] **Simulador "E se...?"** — cenários que não alteram os dados reais; comparação de 12 meses.
 - [ ] **Gamificação** — XP por membro, missões, conquistas.
 - [x] **Relatórios** — evolução por categoria e membro, resumo mensal, exportação CSV.
 - [ ] **Configurações** — nome da família, meta de investimento (%), limite de atenção, carga de dados de referência.

@@ -35,7 +35,7 @@ function Page() {
           <Stat label="Já guardado" value={money(saved)} tone="primary" />
           <Stat label="Falta juntar" value={money(Math.max(0, target - saved))} tone="warn" />
           <Stat label="Aportes por mês" value={money(monthly)} />
-          <Stat label="Objetivos atrasados" value={late} tone={late ? "destructive" : undefined} />
+          {late ? <Stat label="Objetivos atrasados" value={late} tone="destructive" /> : <Stat label="Objetivos atrasados" value={0} />}
         </div>
       </Panel>
       <CrudSection<Goal & Record<string, unknown>>
