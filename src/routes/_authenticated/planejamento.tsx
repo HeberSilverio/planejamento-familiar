@@ -5,7 +5,7 @@ import { Bar, CartesianGrid, Legend, Line, ComposedChart, ResponsiveContainer, T
 import { PageHeader, Panel, Stat, StatusBadge, ProgressBar, Empty, statusText } from "@/components/app/ui";
 import { useFinance } from "@/lib/data/useFinance";
 import { useOptions } from "@/lib/data/options";
-import { projectMonths, currentMonthIndex, monthIndexOf, calculateFutureCommitments } from "@/lib/finance/engine";
+import { projectMonths, projectCashFlow, currentMonthIndex, monthIndexOf, calculateFutureCommitments } from "@/lib/finance/engine";
 import { money, compactMoney } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/planejamento")({
@@ -27,6 +27,7 @@ function Page() {
   const { categories } = useOptions();
   const months = useMemo(() => projectMonths(data, 12), [data]);
   const now = currentMonthIndex();
+  const cashByKey = useMemo(() => new Map(projectCashFlow(data, 12).map((c) => [c.key, c])), [data]);
   const cur = months[0];
   const [sel, setSel] = useState(0);
   const selected = months[sel] ?? cur;
@@ -97,7 +98,7 @@ function Page() {
         <div className="overflow-x-auto mt-4">
           <table className="w-full text-sm">
             <thead className="text-muted-foreground text-left">
-              <tr><th className="py-2">Mês</th><th className="text-right">Receitas</th><th className="text-right">Despesas</th><th className="text-right">Pagas</th><th className="text-right">Em aberto</th><th className="text-right">Pendentes</th><th className="text-right">Invest.</th><th className="text-right">Saldo</th><th className="text-right">Após meta</th></tr>
+              <tr><th className="py-2">Mês</th><th className="text-right">Receitas</th><th className="text-right">Despesas</th><th className="text-right">Pagas</th><th className="text-right">Em aberto</th><th className="text-right">Pendentes</th><th className="text-right">Invest.</th><th className="text-right">Saldo</th><th className="text-right">Após meta</th><th className="text-right" title="Saldo de caixa acumulado desde o início do planejamento">Caixa acum.</th><th className="text-right" title="Caixa acumulado menos contas vencidas em aberto">Disponível</th></tr>
             </thead>
             <tbody>
               {months.map((m, idx) => (
@@ -111,6 +112,8 @@ function Page() {
                   <td className="text-right">{money(m.investment)}</td>
                   <td className={`text-right font-bold ${statusText(m.status)}`}>{money(m.balance)}</td>
                   <td className={`text-right ${m.balanceAfterTarget < 0 ? "text-destructive" : ""}`}>{money(m.balanceAfterTarget)}</td>
+                  <td className={`text-right ${(cashByKey.get(m.key)?.cumulative ?? 0) < 0 ? "text-destructive" : ""}`}>{money(cashByKey.get(m.key)?.cumulative ?? 0)}</td>
+                  <td className={`text-right font-bold ${(cashByKey.get(m.key)?.liquid ?? 0) < 0 ? "text-destructive" : "text-primary"}`}>{money(cashByKey.get(m.key)?.liquid ?? 0)}</td>
                 </tr>
               ))}
             </tbody>
