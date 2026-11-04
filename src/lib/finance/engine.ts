@@ -579,10 +579,11 @@ export function projectCashFlow(
         if (mi > curMi || (mi === curMi && (p.dueDate ?? "") >= today)) outflow += p.amount;
       }
     }
-    const cutoff = mi < curMi ? dueDateIn(mi, 31) : today;
-    const openAt = (p: P, m: number) =>
-      p.origin <= Math.min(m, curMi) && (p.dueDate ?? "") <= cutoff && (p.dueDate ?? "") < today && (p.eff === null || p.eff > m);
-    const overdueOpen = round2(payables.filter((p) => (mi < curMi ? (p.dueDate ?? "") <= cutoff && p.origin <= mi && (p.eff === null || p.eff > mi) : openAt(p, mi))).reduce((s, p) => s + p.amount, 0));
+    // Passado: aberto ao fim daquele mês. Atual/futuro: vencido antes de hoje e ainda não pago.
+    const isOpen = (p: P) => mi < curMi
+      ? (p.dueDate ?? "") <= dueDateIn(mi, 31) && (p.eff === null || p.eff > mi)
+      : (p.dueDate ?? "") < today && p.eff === null;
+    const overdueOpen = round2(payables.filter(isOpen).reduce((s, p) => s + p.amount, 0));
     const net = round2(inflow - outflow);
     cumulative = round2(cumulative + net);
     out.push({
