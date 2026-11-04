@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 - Payment status per occurrence: one-off expenses use `transactions.paid`; monthly occurrences of recurring/commitments/debts are paid when a row exists in `obligation_payments` (source_type, source_id, month_key). Why: paying one month must never mark another, and no rows need pre-generating.
 - All income/balance/due-date math lives in `src/lib/finance/engine.ts` (tested in `src/test/finance-engine.test.tsx`); screens must not compute totals themselves. Why: Dashboard, Família and Planejamento must always agree.
+- Cash view (`projectCashFlow` in engine.ts) is separate from the accrual view (`calculateMonthlyBalance`): an unpaid bill leaves cash only in the month of its effective `paid_at`, and while overdue it only reduces `liquid`. Why: an old bill paid late must be counted exactly once and never hidden.
