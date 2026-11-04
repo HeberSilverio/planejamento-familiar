@@ -55,6 +55,8 @@ export interface MonthItem {
   day?: number | undefined;
   dueDate?: string | undefined;
   paid?: boolean | undefined;
+  /** Data efetiva do pagamento (YYYY-MM-DD, São Paulo): mês em que sai do caixa. */
+  paidAt?: string | undefined;
   /** Como liquidar: transação avulsa ou ocorrência mensal de recorrente/compromisso/dívida. */
   payType?: "transaction" | "recurring" | "commitment" | "debt" | undefined;
   monthKey?: string | undefined;
