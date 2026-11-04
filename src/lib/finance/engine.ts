@@ -106,9 +106,15 @@ export function dueDateIn(mi: number, day: number | null | undefined): string {
   return monthIndexToDate(mi, Math.min(Math.max(1, day ?? 1), last));
 }
 
-function isPaid(data: FinanceData, type: string, id: string, mi: number) {
+function paymentOf(data: FinanceData, type: string, id: string, mi: number) {
   const key = monthKey(mi);
-  return (data.payments ?? []).some((p) => p.source_type === type && p.source_id === id && p.month_key === key);
+  return (data.payments ?? []).find((p) => p.source_type === type && p.source_id === id && p.month_key === key);
+}
+
+/** Campos de liquidação de uma ocorrência mensal (paga + data efetiva do pagamento). */
+function settle(data: FinanceData, type: string, id: string, mi: number) {
+  const p = paymentOf(data, type, id, mi);
+  return { paid: !!p, paidAt: p?.paid_at ? todaySaoPaulo(new Date(p.paid_at)) : undefined };
 }
 
 /**
@@ -168,7 +174,7 @@ export function calculateFutureCommitments(data: FinanceData, mi: number): Month
       categoryId: c.category_id,
       day: c.due_day ?? undefined,
       dueDate: dueDateIn(mi, c.due_day ?? Number(c.first_due_date.slice(8, 10))),
-      paid: isPaid(data, "commitment", c.id, mi),
+      ...settle(data, "commitment", c.id, mi),
       payType: "commitment",
       monthKey: monthKey(mi),
       countsTowardGoal: goal,
@@ -187,7 +193,7 @@ export function calculateFutureCommitments(data: FinanceData, mi: number): Month
       isLast: num === d.installments_total,
       refId: d.id,
       dueDate: dueDateIn(mi, Number(d.first_due_date.slice(8, 10))),
-      paid: num <= d.installments_paid || isPaid(data, "debt", d.id, mi),
+      ...(num <= d.installments_paid ? { paid: true } : settle(data, "debt", d.id, mi)),
       payType: "debt",
       monthKey: monthKey(mi),
     });
@@ -226,7 +232,7 @@ export function calculateMonthlyBalance(
       day: r.day_of_month ?? undefined,
       ...(isIncome ? {} : {
         dueDate: dueDateIn(mi, r.day_of_month ?? Number(r.start_date.slice(8, 10))),
-        paid: isPaid(data, "recurring", r.id, mi),
+        ...settle(data, "recurring", r.id, mi),
         payType: "recurring" as const,
         monthKey: monthKey(mi),
       }),
@@ -248,7 +254,10 @@ export function calculateMonthlyBalance(
       categoryId: t.category_id,
       cardId: t.credit_card_id,
       day: Number(t.date.slice(8, 10)),
-      ...(isIncome ? {} : { dueDate: t.date, paid: !!t.paid, payType: "transaction" as const }),
+      ...(isIncome ? {} : {
+        dueDate: t.date, paid: !!t.paid, payType: "transaction" as const,
+        paidAt: t.paid && t.paid_at ? todaySaoPaulo(new Date(t.paid_at)) : undefined,
+      }),
     });
   }
 
@@ -489,4 +498,99 @@ export function simulateDebtPayoff(debts: Debt[], extra: number, strategy: "snow
     for (const d of list) if (d.bal <= 0.005 && !d.done) { d.done = month; order.push({ name: d.name, month }); }
   }
   return { months: month, interest: round2(interest), order };
+}
+
+/* ===================== Fluxo de caixa (competência x caixa) ===================== */
+
+export interface CashMonth {
+  mi: number;
+  key: string;
+  label: string;
+  /** Visão de competência do mês (orçamento). */
+  budget: MonthResult;
+  inflow: number;
+  /** Saídas efetivas/previstas no caixa deste mês. */
+  outflow: number;
+  /** Parte das saídas que liquida contas de meses anteriores. */
+  settledFromPrevious: number;
+  net: number;
+  /** Saldo operacional acumulado desde o marco zero (sem saldo bancário). */
+  cumulative: number;
+  /** Obrigações vencidas e não pagas ao fim do mês (ou hoje, no mês atual). */
+  overdueOpen: number;
+  /** Disponibilidade líquida = acumulado − vencidas em aberto. */
+  liquid: number;
+}
+
+/** Marco zero: primeiro mês com dado cadastrado (limitado a 24 meses atrás). */
+export function planningStartMonth(data: FinanceData, curMi: number): number {
+  const dates = [
+    ...data.incomes.filter((i) => i.in_budget).map((i) => i.start_date),
+    ...data.recurring.map((r) => r.start_date),
+    ...data.commitments.map((c) => c.first_due_date),
+    ...data.debts.map((d) => d.first_due_date),
+    ...data.investments.map((i) => i.start_date),
+    ...data.transactions.map((t) => t.date),
+  ].filter(Boolean) as string[];
+  if (dates.length === 0) return curMi;
+  return Math.min(curMi, Math.max(curMi - 24, Math.min(...dates.map(monthIndexOf))));
+}
+
+/**
+ * Projeta caixa mês a mês desde o marco zero até curMi+count-1.
+ * Regras: conta não paga não sai do caixa; ao ser paga, sai no mês do pagamento efetivo (uma vez só);
+ * enquanto vencida, reduz a disponibilidade líquida. Meses futuros assumem pagamento em dia.
+ */
+export function projectCashFlow(
+  data: FinanceData,
+  count: number,
+  today = todaySaoPaulo(),
+  sim: SimItem[] = [],
+): CashMonth[] {
+  const curMi = monthIndexOf(today);
+  const m0 = planningStartMonth(data, curMi);
+  const last = curMi + count - 1;
+  const budgets = new Map<number, MonthResult>();
+  for (let mi = m0; mi <= last; mi++) budgets.set(mi, calculateMonthlyBalance(data, mi, sim, curMi));
+
+  type P = MonthItem & { origin: number; eff: number | null };
+  const payables: P[] = [];
+  for (const [mi, b] of budgets) {
+    for (const it of b.items) {
+      if (!it.payType || it.group === "income") continue;
+      const eff = it.paid ? (it.paidAt ? monthIndexOf(it.paidAt) : mi) : null;
+      payables.push({ ...it, origin: mi, eff });
+    }
+  }
+
+  const out: CashMonth[] = [];
+  let cumulative = 0;
+  for (let mi = m0; mi <= last; mi++) {
+    const b = budgets.get(mi)!;
+    const inflow = b.income;
+    let outflow = b.items.filter((i) => i.group !== "income" && !i.payType).reduce((s, i) => s + i.amount, 0);
+    let settledFromPrevious = 0;
+    for (const p of payables) {
+      if (p.eff === mi) {
+        outflow += p.amount;
+        if (p.origin < mi) settledFromPrevious += p.amount;
+      } else if (p.eff === null && p.origin === mi) {
+        // Não paga: futuro assume pagamento em dia; no mês atual só o que ainda não venceu.
+        if (mi > curMi || (mi === curMi && (p.dueDate ?? "") >= today)) outflow += p.amount;
+      }
+    }
+    // Passado: aberto ao fim daquele mês. Atual/futuro: vencido antes de hoje e ainda não pago.
+    const isOpen = (p: P) => mi < curMi
+      ? (p.dueDate ?? "") <= dueDateIn(mi, 31) && (p.eff === null || p.eff > mi)
+      : (p.dueDate ?? "") < today && p.eff === null;
+    const overdueOpen = round2(payables.filter(isOpen).reduce((s, p) => s + p.amount, 0));
+    const net = round2(inflow - outflow);
+    cumulative = round2(cumulative + net);
+    out.push({
+      mi, key: monthKey(mi), label: monthLabel(mi), budget: b,
+      inflow, outflow: round2(outflow), settledFromPrevious: round2(settledFromPrevious),
+      net, cumulative, overdueOpen, liquid: round2(cumulative - overdueOpen),
+    });
+  }
+  return out;
 }

@@ -7,18 +7,20 @@ import type { MonthItem } from "@/lib/finance/types";
 export function useTogglePaid() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ item, paid }: { item: MonthItem; paid: boolean }) => {
+    mutationFn: async ({ item, paid, paidOn }: { item: MonthItem; paid: boolean; paidOn?: string }) => {
       if (!item.payType || !item.refId) throw new Error("Item sem vínculo de pagamento");
+      // Data efetiva do pagamento: define em qual mês o dinheiro sai do caixa.
+      const paidAt = paid && paidOn ? `${paidOn}T12:00:00-03:00` : undefined;
       if (item.payType === "transaction") {
-        const { error } = await supabase.from("transactions").update({ paid }).eq("id", item.refId);
+        const { error } = await supabase.from("transactions").update({ paid, ...(paidAt ? { paid_at: paidAt } : {}) }).eq("id", item.refId);
         if (error) throw error;
         return;
       }
       if (!item.monthKey) throw new Error("Ocorrência sem mês");
       if (paid) {
         const { error } = await supabase.from("obligation_payments").upsert(
-          { source_type: item.payType, source_id: item.refId, month_key: item.monthKey },
-          { onConflict: "user_id,source_type,source_id,month_key", ignoreDuplicates: true },
+          { source_type: item.payType, source_id: item.refId, month_key: item.monthKey, ...(paidAt ? { paid_at: paidAt } : {}) },
+          { onConflict: "user_id,source_type,source_id,month_key" },
         );
         if (error) throw error;
       } else {

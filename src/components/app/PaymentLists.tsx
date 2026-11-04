@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Check, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { todaySaoPaulo, addDays, type DueItem } from "@/lib/finance/engine";
 import type { MonthItem, MonthResult } from "@/lib/finance/types";
 import { cn } from "@/lib/utils";
 
-function PayButton({ item }: { item: MonthItem }) {
+function PayButton({ item, paidOn }: { item: MonthItem; paidOn?: string }) {
   const toggle = useTogglePaid();
   if (!item.payType) return null;
   return item.paid ? (
@@ -17,9 +18,24 @@ function PayButton({ item }: { item: MonthItem }) {
       <RotateCcw className="size-3.5" /> Reabrir
     </Button>
   ) : (
-    <Button size="sm" variant="outline" disabled={toggle.isPending} onClick={() => toggle.mutate({ item, paid: true })}>
+    <Button size="sm" variant="outline" disabled={toggle.isPending} onClick={() => toggle.mutate({ item, paid: true, paidOn: paidOn ?? todaySaoPaulo() })}>
       <Check className="size-3.5" /> Paga
     </Button>
+  );
+}
+
+/** Conta vencida: escolhe a data em que foi paga (sai do caixa nesse mês). */
+function LatePay({ item }: { item: MonthItem }) {
+  const [date, setDate] = useState(todaySaoPaulo());
+  return (
+    <span className="flex items-center gap-1">
+      <label className="text-xs text-muted-foreground">
+        <span className="sr-only">Data do pagamento</span>
+        <input type="date" value={date} max={todaySaoPaulo()} onChange={(e) => setDate(e.target.value)}
+          className="rounded-md border border-input bg-background px-2 py-1 text-xs" title="Data em que foi paga" />
+      </label>
+      <PayButton item={item} paidOn={date} />
+    </span>
   );
 }
 
@@ -44,7 +60,7 @@ export function DueLists({ overdue, soon }: { overdue: DueItem[]; soon: DueItem[
         </p>
       </div>
       <span className="font-display font-extrabold">{money(i.amount)}</span>
-      <PayButton item={i} />
+      {late ? <LatePay item={i} /> : <PayButton item={i} />}
       <DetailsLink item={i} />
     </li>
   );
