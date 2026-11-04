@@ -79,7 +79,7 @@ function Dashboard() {
         <Panel title="Caixa acumulado do planejamento">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Stat label="Saldo acumulado (caixa)" value={money(cashNow.cumulative)} tone={cashNow.cumulative < 0 ? "destructive" : "primary"} />
-            <Stat label="Contas vencidas em aberto" value={money(cashNow.overdueOpen)} tone={cashNow.overdueOpen > 0 ? "destructive" : undefined} />
+            <Stat label="Contas vencidas em aberto" value={money(cashNow.overdueOpen)} tone={cashNow.overdueOpen > 0 ? "destructive" : "primary"} />
             <Stat label="Disponibilidade líquida" value={money(cashNow.liquid)} tone={cashNow.liquid < 0 ? "destructive" : "primary"} />
           </div>
           <p className="text-xs text-muted-foreground mt-3">
