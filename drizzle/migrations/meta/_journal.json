@@ -15,6 +15,13 @@
       "when": 1791935425164,
       "tag": "0001_payment_status_and_income_frequency",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793900923990,
+      "tag": "0002_category_envelope_pct",
+      "breakpoints": true
     }
   ]
 }
