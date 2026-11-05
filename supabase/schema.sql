@@ -379,3 +379,5 @@ CREATE POLICY "own delete" ON public.obligation_payments FOR DELETE TO authentic
 CREATE INDEX obligation_payments_source_idx ON public.obligation_payments (source_type, source_id);
 CREATE TRIGGER obligation_payments_updated_at BEFORE UPDATE ON public.obligation_payments
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+-- Orçamento por envelopes: % da renda do mês destinado a cada categoria de despesa
+alter table public.categories add column if not exists envelope_pct numeric not null default 0;

@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useFinance } from "@/lib/data/useFinance";
 import { projectMonths, calculateSafeSpendingLimit, listDueItems, projectCashFlow, monthLabel } from "@/lib/finance/engine";
 import { DueLists } from "@/components/app/PaymentLists";
+import { EnvelopeList } from "@/components/app/Envelopes";
 import { money, compactMoney } from "@/lib/format";
 import { Panel, ProgressBar, Stat, StatusBadge, statusText, Empty } from "@/components/app/ui";
 import { useTable } from "@/lib/data/tables";
@@ -87,6 +88,10 @@ function Dashboard() {
           </p>
         </Panel>
       )}
+
+      <Panel title="Envelopes do mês" action={<Link to="/planejamento" className="text-sm text-muted-foreground hover:text-foreground">Ajustar % →</Link>}>
+        <EnvelopeList month={cur} compact />
+      </Panel>
 
       <Panel title="Pendências e próximos vencimentos">
         <DueLists overdue={due.overdue} soon={due.soon} />

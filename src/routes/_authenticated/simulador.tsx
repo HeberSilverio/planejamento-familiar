@@ -4,6 +4,7 @@ import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, X
 import { Trash2 } from "lucide-react";
 import { PageHeader, Panel, Stat, Empty } from "@/components/app/ui";
 import { CrudSection } from "@/components/app/CrudSection";
+import { EnvelopePurchaseCheck } from "@/components/app/Envelopes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFinance } from "@/lib/data/useFinance";
@@ -51,6 +52,11 @@ function Page() {
     <>
       <PageHeader eyebrow="Lar.Contas" title="Simulador E se...?" />
       <p className="text-sm text-muted-foreground mb-6">Os cenários nunca alteram seus dados reais — servem só para comparar.</p>
+      {impact.base[0] && (
+        <Panel title="De qual envelope sai esta compra?" className="mb-6">
+          <EnvelopePurchaseCheck month={impact.base[0]} />
+        </Panel>
+      )}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <CrudSection<Simulation & Record<string, unknown>>
           table="simulations"
