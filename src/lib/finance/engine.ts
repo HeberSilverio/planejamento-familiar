@@ -594,3 +594,68 @@ export function projectCashFlow(
   }
   return out;
 }
+
+/* ---------------- Orçamento por envelopes ---------------- */
+
+export interface EnvelopeCategory { id: string; name: string; kind: string; envelope_pct: number | string | null }
+
+export interface Envelope {
+  categoryId: string | null;
+  name: string;
+  pct: number;
+  ceiling: number;
+  spent: number;
+  available: number;
+  usedPct: number;
+  status: "ok" | "acabando" | "estourado" | "sem_teto";
+}
+
+/** Fração do teto a partir da qual o envelope é sinalizado como "acabando". */
+export const ENVELOPE_WARN = 0.85;
+
+/**
+ * Divide a renda prevista do mês entre as categorias de despesa conforme o % de cada envelope
+ * e desconta tudo que foi lançado/previsto na categoria (fixas, parcelas e avulsos).
+ * Despesas sem categoria vão para o envelope "Sem categoria" (sem teto).
+ */
+export function calculateEnvelopes(month: MonthResult, categories: EnvelopeCategory[], extra?: { categoryId: string; amount: number }): Envelope[] {
+  const spentBy = new Map<string, number>();
+  for (const it of month.items) {
+    if (it.group !== "expense") continue;
+    const k = it.categoryId ?? "none";
+    spentBy.set(k, (spentBy.get(k) ?? 0) + it.amount);
+  }
+  if (extra) spentBy.set(extra.categoryId, (spentBy.get(extra.categoryId) ?? 0) + extra.amount);
+  const out: Envelope[] = [];
+  for (const c of categories) {
+    if (c.kind !== "expense") continue;
+    const pct = n(c.envelope_pct);
+    const spent = round2(spentBy.get(c.id) ?? 0);
+    if (pct <= 0 && spent <= 0) continue;
+    out.push(buildEnvelope(c.id, c.name, pct, round2((month.income * pct) / 100), spent));
+  }
+  const none = round2(spentBy.get("none") ?? 0);
+  if (none > 0) out.push(buildEnvelope(null, "Sem categoria", 0, 0, none));
+  return out.sort((a, b) => b.ceiling - a.ceiling || b.spent - a.spent);
+}
+
+function buildEnvelope(categoryId: string | null, name: string, pct: number, ceiling: number, spent: number): Envelope {
+  const available = round2(ceiling - spent);
+  const usedPct = ceiling > 0 ? (spent / ceiling) * 100 : spent > 0 ? 100 : 0;
+  const status: Envelope["status"] =
+    ceiling <= 0 ? "sem_teto" : spent > ceiling ? "estourado" : spent >= ceiling * ENVELOPE_WARN ? "acabando" : "ok";
+  return { categoryId, name, pct, ceiling, spent, available, usedPct, status };
+}
+
+/** Soma dos percentuais definidos (deve ficar até 100%). */
+export function totalEnvelopePct(categories: EnvelopeCategory[]): number {
+  return round2(categories.filter((c) => c.kind === "expense").reduce((s, c) => s + n(c.envelope_pct), 0));
+}
+
+/** Em quais envelopes uma compra cabe no mês: ordena do que mais sobra para o que menos sobra. */
+export function suggestEnvelopes(envelopes: Envelope[], amount: number) {
+  return envelopes
+    .filter((e) => e.categoryId && e.ceiling > 0)
+    .map((e) => ({ ...e, fits: e.available >= amount, after: round2(e.available - amount) }))
+    .sort((a, b) => b.available - a.available);
+}
