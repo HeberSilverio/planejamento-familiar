@@ -56,7 +56,10 @@ export function EnvelopeConfig({ month }: { month: MonthResult }) {
   const val = (c: EnvelopeCategory) => draft[c.id] ?? String(Number(c.envelope_pct ?? 0));
   const total = cats.reduce((s, c) => s + (Number(val(c)) || 0), 0);
   const save = async () => {
-    if (total > 100) return toast.error("A soma dos percentuais passa de 100%.");
+    if (total > 100) {
+      toast.error("A soma dos percentuais passa de 100%.");
+      return;
+    }
     const changed = cats.filter((c) => draft[c.id] !== undefined && Number(draft[c.id]) !== Number(c.envelope_pct));
     for (const c of changed) await update.mutateAsync({ id: c.id, values: { envelope_pct: Number(draft[c.id]) || 0 } });
     setDraft({});
