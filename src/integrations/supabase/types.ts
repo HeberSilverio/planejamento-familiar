@@ -86,6 +86,7 @@ export type Database = {
         Row: {
           color: string | null
           created_at: string
+          envelope_pct: number
           id: string
           kind: Database["public"]["Enums"]["tx_kind"]
           name: string
@@ -95,6 +96,7 @@ export type Database = {
         Insert: {
           color?: string | null
           created_at?: string
+          envelope_pct?: number
           id?: string
           kind?: Database["public"]["Enums"]["tx_kind"]
           name: string
@@ -104,6 +106,7 @@ export type Database = {
         Update: {
           color?: string | null
           created_at?: string
+          envelope_pct?: number
           id?: string
           kind?: Database["public"]["Enums"]["tx_kind"]
           name?: string

@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { MonthDetail } from "@/components/app/PaymentLists";
+import { EnvelopeConfig, EnvelopeList } from "@/components/app/Envelopes";
 import { Bar, CartesianGrid, Legend, Line, ComposedChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { PageHeader, Panel, Stat, StatusBadge, ProgressBar, Empty, statusText } from "@/components/app/ui";
 import { useFinance } from "@/lib/data/useFinance";
@@ -77,6 +78,13 @@ function Page() {
           <Stat label={`Meta ${cur.targetPct}%`} value={money(cur.target)} tone="warn" />
           <Stat label="Saldo após meta" value={money(cur.balanceAfterTarget)} tone={cur.balanceAfterTarget < 0 ? "destructive" : "primary"} />
         </div>
+      </Panel>
+
+      <Panel title={`Envelopes — ${selected!.fullLabel}`} className="mb-6">
+        <EnvelopeList month={selected!} />
+      </Panel>
+      <Panel title="Percentual da renda por envelope" className="mb-6">
+        <EnvelopeConfig month={cur} />
       </Panel>
 
       <Panel title="Fluxo de caixa — próximos 12 meses" className="mb-6">

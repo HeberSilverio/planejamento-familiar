@@ -1,0 +1,1 @@
+ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS envelope_pct numeric NOT NULL DEFAULT 0;
